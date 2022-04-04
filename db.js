@@ -20,7 +20,9 @@ const User = conn.define("user", {
 
 User.byToken = async (token) => {
   try {
-    const user = jwt.verify(token, process.env.JWT);
+    const userInfo = jwt.verify(token, process.env.JWT);
+    const user = await User.findByPk(userInfo.userId);
+
     if (user) {
       return user;
     }
