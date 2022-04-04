@@ -4,6 +4,7 @@ const { STRING } = Sequelize;
 const config = {
   logging: false,
 };
+const bcrypt = require("bcrypt");
 
 if (process.env.LOGGING) {
   delete config.logging;
@@ -40,16 +41,24 @@ User.authenticate = async ({ username, password }) => {
   const user = await User.findOne({
     where: {
       username,
-      password,
     },
   });
-  if (user) {
-    return (token = jwt.sign({ userId: user.id }, process.env.JWT));
+
+  const match = await bcrypt.compare(password, user.password);
+
+  if (match) {
+    const token = jwt.sign({ userId: user.id }, process.env.JWT);
+    return token;
   }
   const error = Error("bad credentials");
   error.status = 401;
   throw error;
 };
+
+User.beforeCreate(async (user) => {
+  const hash = await bcrypt.hash(user.password, 10);
+  user.password = hash;
+});
 
 const syncAndSeed = async () => {
   await conn.sync({ force: true });
